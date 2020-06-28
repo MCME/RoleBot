@@ -1,0 +1,17 @@
+{
+	"token": "yourBotTokenHere",
+	"signInChannel": "sign-in",
+	"jobEmoji": "👷",
+	"tourEmoji": "🚶", 
+	"pvpEmoji": "⚔️",
+	"jobRole": "jobber",
+	"tourRole": "tourist",
+	"pvpRole": "fighter",
+	"addJobRoleMessage": "Great you want to help with jobs at MCME. When a job starts you'll get a ping.",
+	"sendRoleChangedMessages": true,
+	"addTourRoleMessage": "When a tour starts you'll get a ping.",
+	"addPvpRoleMessage": "When a pvp game starts you'll get a ping.",
+	"removeJobRoleMessage": "Sorry to hear you don't want to get job pings from MCME any more.",
+	"removeTourRoleMessage": "Sorry to hear you don't want to get tour pings from MCME any more.",
+	"removePvpRoleMessage": "Sorry to hear you don't want to get pvp pings from MCME any more."
+}
