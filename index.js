@@ -1,90 +1,99 @@
 const Discord = require('discord.js');
- const client = new Discord.Client();
-const instructionMessage = 'React with :nerd: to get pinged when a job starts.\n'
-				          +'React with :sunglasses: to stop getting job pings.\n';
-				
+const client = new Discord.Client({ partials: ['MESSAGE', 'REACTION'] });
+const config = require('./config.json');
+
 client.on('ready', () => { 
  console.log(`Logged in as ${client.user.tag}!`);
- client.channels.filter(channel => checkDev(channel) 
-                                 && channel.type ==='text' 
-								 && channel.name ==='job-alerts')
-                .array().forEach( channel => {
-					//channel.send();
-					sendInstructions(channel, 'JobBot is starting...\n'+instructionMessage);
-				});
  });
 
 client.on('error', error => { 
 	console.log(error.message); 
  });
 
- client.on('message', message => {
-	if (!message.guild) return;
-	if (!checkDev(message.channel)) return;
-	if (!(message.channel.name ==='job-alerts')) return;
-	if (message.author.username === 'JobBot') return;
-	sendInstructions(message.channel);
- });
+client.on('messageReactionAdd', async (messageReaction,user) => { 
+	if (messageReaction.partial) {
+		try {
+			await messageReaction.fetch();
+		} catch (error) {
+			console.log('Something went wrong when fetching the message: ', error);
+			return;
+		}
+	}  
+	try {
+		if(user.bot) return;
+		if (!messageReaction.message.guild) return;
+		if (!(messageReaction.message.channel.name ===config.signInChannel)) return;
+		
+		console.log(messageReaction.emoji.name);
+		if(messageReaction.emoji.name == config.jobEmoji) {
+			handleRole(messageReaction,user,config.jobRole,config.addJobRoleMessage,true);
+		}
+		else if(messageReaction.emoji.name === config.tourEmoji) {
+			handleRole(messageReaction,user,config.tourRole,config.addTourRoleMessage,true);
+		}
+		else if(messageReaction.emoji.name === config.pvpEmoji) {
+			handleRole(messageReaction,user,config.pvpRole,config.addPvpRoleMessage,true);
+		}
+		else {
+			messageReaction.remove().catch(error => console.error('Failed to remove reactions: ', error));
+		}
+    } catch (e) {
+		console.log(e);
+	}
+}) 
  
-client.on('messageReactionAdd', (messageReaction,user) => handleReactions(messageReaction,user));
-client.on('messageReactionRemove', (messageReaction,user) => handleReactions(messageReaction,user));
-
-function handleReactions(messageReaction,user) { 
-  try {
-	if(user.bot) return;
-	if (!messageReaction.message.guild) return;
-	if (!checkDev(messageReaction.message.channel)) return;
-	if (!(messageReaction.message.channel.name ==='job-alerts')) return;
-	if(messageReaction.emoji.identifier === '%F0%9F%A4%93') {
-		const member = messageReaction.message.guild.member(user);
-		if(member != null) {
-			member.addRole(messageReaction.message.guild.roles.find(role => role.name === 'jobber'));
+client.on('messageReactionRemove', async (messageReaction,user) => { 
+	if (messageReaction.partial) {
+		try {
+			await messageReaction.fetch();
+		} catch (error) {
+			console.log('Something went wrong when fetching the message: ', error);
+			return;
+		}
+	}  
+	try {
+		if(user.bot) return;
+		if (!messageReaction.message.guild) return;
+		if (!(messageReaction.message.channel.name ===config.signInChannel)) return;
+		
+		if(messageReaction.emoji.name === config.jobEmoji) {
+			handleRole(messageReaction,user,config.jobRole,config.removeJobRoleMessage,false);
+		}
+		else if(messageReaction.emoji.name === config.tourEmoji) {
+			handleRole(messageReaction,user,config.tourRole,config.removeTourRoleMessage,false);
+		}
+		else if(messageReaction.emoji.name === config.pvpEmoji) {
+			handleRole(messageReaction,user,config.pvpRole,config.removePvpRoleMessage,false);
+		}
+    } catch (e) {
+		console.log(e); 
+	}
+ })
+ 
+ function handleRole(messageReaction,user,role,message,addRole) {
+	const member = messageReaction.message.guild.member(user);
+	if(member != null) {
+		if(addRole) {
+			member.roles.add(messageReaction.message.guild.roles.cache.find(search => search.name === role))
+				.catch(error => console.log(error));
+		} else {
+			member.roles.remove(messageReaction.message.guild.roles.cache.find(search => search.name === role))
+				.catch(error => console.log(error));
+		}
+		if(config.sendRoleChangedMessages) {
 			if(user.dmChannel == null) {
-				user.createDM().then(channel => sendAddMessage(channel))
-				               .catch(error => console.log(error));
+				user.createDM().then(channel => sendMessage(channel,message))
+							.catch(error => console.log(error));
 			} else {
-				sendAddMessage(user.dmChannel);
+				sendMessage(user.dmChannel,message)
 			}
 		}
 	}
-	else if(messageReaction.emoji.identifier === '%F0%9F%98%8E') {
-		const member = messageReaction.message.guild.member(user);
-		if(member != null) {
-			member.removeRole(messageReaction.message.guild.roles.find(role => role.name === 'jobber'));
-			if(user.dmChannel == null) {
-				user.createDM().then(channel => sendRemoveMessage(channel))
-				               .catch(error => console.log(error));
-			} else {
-				sendRemoveMessage(user.dmChannel);
-			}
-		}
-	}
-  } catch (e) {
-	  console.log(e);
-  }
- } 
- 
- function sendRemoveMessage(channel) {
-	channel.send('Sorry to hear you don\'t want to get job pings from MCME any more.');
  }
  
- function sendAddMessage(channel) {
-	channel.send('Great you want to help with jobs at MCME. When a job starts you\'ll get a ping.');
+ function sendMessage(channel,message) {
+	channel.send(message)
+		   .catch(error => console.log(error));
  }
  
-function sendInstructions(channel, messageText) {
-	if(typeof messageText === 'undefined') {
-		messageText = 'Get notifications for jobs at MCME!\n'+instructionMessage;
-	}
-	channel.send(messageText)
-		.then(message => {
-			message.react('\u{1F913}');
-			message.react('\u{1F60E}');
-		}).catch(error => console.log(error));
- }
- 
-function checkDev(channel) {
-	return true; // <- productive version
-}
-
-client.login('...');
+client.login(config.token);

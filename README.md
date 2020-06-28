@@ -1,2 +1,2 @@
-# JobberBot
-A simple discord bot to assign jobber role to players
+# RoleBot
+A simple discord bot for self-claiming of various discord roles
